@@ -35,10 +35,16 @@ export default function Home() {
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <span className="text-3xl">🍱</span>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold text-gray-800">오늘의 급식</h1>
             <p className="text-xs text-gray-400">주간 메뉴표 분석기</p>
           </div>
+          <a
+            href="/admin"
+            className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+          >
+            관리자
+          </a>
         </div>
       </header>
 
