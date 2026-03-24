@@ -117,47 +117,42 @@ function DishCell({ dish, colors }: DishCellProps) {
 
   return (
     <div
-      className="relative rounded-lg overflow-hidden flex flex-col items-center justify-end group cursor-default"
+      className="rounded-lg overflow-hidden flex flex-col"
       style={{
         backgroundColor: colors.compartment,
         border: `1.5px solid ${colors.border}`,
-        minHeight: 90,
         boxShadow: `inset 0 1px 3px rgba(0,0,0,0.1)`,
       }}
     >
-      {dish.loading ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
-        </div>
-      ) : dish.imageUrl && !imgError ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+      {/* 사진 영역 */}
+      <div className="relative w-full" style={{ height: 80 }}>
+        {dish.loading ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+          </div>
+        ) : dish.imageUrl && !imgError ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={dish.imageUrl}
             alt={dish.name}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="w-full h-full object-cover"
             onError={() => setImgError(true)}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        </>
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center p-2">
-          <span className="text-2xl">🍽️</span>
-        </div>
-      )}
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-3xl">🍽️</span>
+          </div>
+        )}
+      </div>
 
-      {/* Dish name label */}
-      <div className="relative z-10 w-full px-1 py-1 text-center">
+      {/* 텍스트 영역 */}
+      <div
+        className="w-full px-1.5 py-1.5 text-center"
+        style={{ backgroundColor: "rgba(0,0,0,0.06)" }}
+      >
         <span
-          className="text-xs font-medium leading-tight line-clamp-2"
-          style={{
-            color:
-              dish.imageUrl && !imgError ? "white" : "#4B3A2A",
-            textShadow:
-              dish.imageUrl && !imgError
-                ? "0 1px 2px rgba(0,0,0,0.8)"
-                : "none",
-          }}
+          className="text-xs font-semibold leading-tight line-clamp-2 block"
+          style={{ color: "#3D2B1A" }}
         >
           {dish.name}
         </span>
