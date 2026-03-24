@@ -1,26 +1,25 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { saveMenu } from "@/lib/menu-store";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get("image") as File;
-
     if (!file) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString("base64");
-    const mediaType = file.type as
-      | "image/jpeg"
-      | "image/png"
-      | "image/gif"
-      | "image/webp";
+    const mediaType = file.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
 
     const response = await client.messages.create({
       model: "claude-opus-4-6",
@@ -29,14 +28,7 @@ export async function POST(request: NextRequest) {
         {
           role: "user",
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType,
-                data: base64,
-              },
-            },
+            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
             {
               type: "text",
               text: `이 주간 급식 메뉴표 이미지를 분석해서 아래 JSON 형식으로 반환해주세요.
@@ -67,26 +59,17 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
-
-    // Extract JSON from response
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return NextResponse.json(
-        { error: "Failed to parse menu data" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to parse menu data" }, { status: 500 });
     }
 
     const menuData = JSON.parse(jsonMatch[0]);
+    await saveMenu(menuData);
     return NextResponse.json(menuData);
   } catch (error) {
-    console.error("Error analyzing menu:", error);
     const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
