@@ -10,25 +10,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No query provided" }, { status: 400 });
   }
 
-  if (!UNSPLASH_ACCESS_KEY) {
-    return NextResponse.json({ url: null });
+  // Unsplash API 키가 있으면 정확한 검색
+  if (UNSPLASH_ACCESS_KEY) {
+    try {
+      const res = await fetch(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(`Korean food ${query}`)}&per_page=1&orientation=squarish`,
+        { headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
+      );
+      const data = await res.json();
+      const url = data.results?.[0]?.urls?.small || null;
+      if (url) return NextResponse.json({ url });
+    } catch {
+      // fall through to loremflickr
+    }
   }
 
-  try {
-    const searchQuery = `Korean food ${query}`;
-    const res = await fetch(
-      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&per_page=1&orientation=squarish`,
-      {
-        headers: {
-          Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
-        },
-      }
-    );
-
-    const data = await res.json();
-    const url = data.results?.[0]?.urls?.small || null;
-    return NextResponse.json({ url });
-  } catch {
-    return NextResponse.json({ url: null });
-  }
+  // 키 없을 때 또는 결과 없을 때: loremflickr (API 키 불필요)
+  const url = `https://loremflickr.com/200/200/korean,food,${encodeURIComponent(query)}/all`;
+  return NextResponse.json({ url });
 }
