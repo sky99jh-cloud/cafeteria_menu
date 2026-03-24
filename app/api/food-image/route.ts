@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q");
@@ -10,22 +8,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No query provided" }, { status: 400 });
   }
 
-  // Unsplash API 키가 있으면 정확한 검색
-  if (UNSPLASH_ACCESS_KEY) {
-    try {
-      const res = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(`Korean food ${query}`)}&per_page=1&orientation=squarish`,
-        { headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
-      );
-      const data = await res.json();
-      const url = data.results?.[0]?.urls?.small || null;
-      if (url) return NextResponse.json({ url });
-    } catch {
-      // fall through to loremflickr
-    }
+  const clientId = process.env.NAVER_CLIENT_ID;
+  const clientSecret = process.env.NAVER_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return NextResponse.json({ url: null });
   }
 
-  // 키 없을 때 또는 결과 없을 때: loremflickr (API 키 불필요)
-  const url = `https://loremflickr.com/200/200/korean,food,${encodeURIComponent(query)}/all`;
-  return NextResponse.json({ url });
+  try {
+    const res = await fetch(
+      `https://openapi.naver.com/v1/search/image?query=${encodeURIComponent(query)}&display=1&sort=sim&filter=medium`,
+      {
+        headers: {
+          "X-Naver-Client-Id": clientId,
+          "X-Naver-Client-Secret": clientSecret,
+        },
+      }
+    );
+
+    const data = await res.json();
+    const url = data.items?.[0]?.thumbnail || null;
+    return NextResponse.json({ url });
+  } catch {
+    return NextResponse.json({ url: null });
+  }
 }
