@@ -83,8 +83,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(menuData);
   } catch (error) {
     console.error("Error analyzing menu:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to analyze menu image" },
+      { error: message },
       { status: 500 }
     );
   }
