@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import MenuUpload from "@/components/MenuUpload";
 import TrayDisplay from "@/components/TrayDisplay";
 import DaySelector from "@/components/DaySelector";
 import { WeeklyMenu, DayMenu } from "@/lib/types";
+
+const STORAGE_KEY = "cafeteria_menu";
 
 export default function Home() {
   const [menu, setMenu] = useState<WeeklyMenu | null>(null);
@@ -12,11 +14,31 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const [todayIndex, setTodayIndex] = useState(-1);
+  const [showUpload, setShowUpload] = useState(false);
 
   const findTodayIndex = useCallback((days: DayMenu[]) => {
     const today = new Date().toISOString().slice(0, 10);
     return days.findIndex((d) => d.date === today);
   }, []);
+
+  const applyMenu = useCallback((data: WeeklyMenu) => {
+    setMenu(data);
+    const idx = findTodayIndex(data.days);
+    setTodayIndex(idx);
+    setSelectedDayIndex(idx >= 0 ? idx : 0);
+  }, [findTodayIndex]);
+
+  // 페이지 로드 시 저장된 메뉴 복원
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        applyMenu(JSON.parse(saved));
+      }
+    } catch {
+      // 저장 데이터 손상 시 무시
+    }
+  }, [applyMenu]);
 
   const handleAnalyze = useCallback(
     async (file: File) => {
@@ -35,18 +57,16 @@ export default function Home() {
         if (!res.ok) throw new Error("메뉴 분석에 실패했습니다");
 
         const data: WeeklyMenu = await res.json();
-        setMenu(data);
-
-        const idx = findTodayIndex(data.days);
-        setTodayIndex(idx);
-        setSelectedDayIndex(idx >= 0 ? idx : 0);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        applyMenu(data);
+        setShowUpload(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "오류가 발생했습니다");
       } finally {
         setLoading(false);
       }
     },
-    [findTodayIndex]
+    [applyMenu]
   );
 
   const selectedDay = menu?.days[selectedDayIndex];
@@ -57,21 +77,31 @@ export default function Home() {
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <span className="text-3xl">🍱</span>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold text-gray-800">오늘의 급식</h1>
             <p className="text-xs text-gray-400">주간 메뉴표 분석기</p>
           </div>
+          {menu && (
+            <button
+              onClick={() => setShowUpload((v) => !v)}
+              className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              {showUpload ? "닫기" : "메뉴 업데이트"}
+            </button>
+          )}
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Upload */}
-        <section className="bg-white rounded-2xl shadow-sm p-4">
-          <MenuUpload onAnalyze={handleAnalyze} loading={loading} />
-          {error && (
-            <p className="mt-3 text-red-500 text-sm text-center">{error}</p>
-          )}
-        </section>
+        {/* Upload - 메뉴 없을 때 항상 표시, 있을 때는 토글 */}
+        {(!menu || showUpload) && (
+          <section className="bg-white rounded-2xl shadow-sm p-4">
+            <MenuUpload onAnalyze={handleAnalyze} loading={loading} />
+            {error && (
+              <p className="mt-3 text-red-500 text-sm text-center">{error}</p>
+            )}
+          </section>
+        )}
 
         {/* Menu */}
         {menu && selectedDay && (
