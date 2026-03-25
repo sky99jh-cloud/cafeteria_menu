@@ -25,13 +25,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No query provided" }, { status: 400 });
   }
 
-  // 캐시 확인 (배열 또는 구버전 문자열 형태 모두 처리)
+  // 캐시 확인 (Upstash가 JSON을 자동 파싱하므로 배열/문자열 모두 처리)
   const cacheKey = `food-image:${query}`;
-  const cached = await redis.get<string | null>(cacheKey);
+  const cached = await redis.get<string[] | string | null>(cacheKey);
   if (cached) {
-    const urls = cached.startsWith("[")
-      ? (JSON.parse(cached) as string[])
-      : [cached];
+    const urls = Array.isArray(cached) ? cached : [cached];
     return NextResponse.json({ urls });
   }
 
@@ -58,9 +56,9 @@ export async function GET(request: NextRequest) {
       .map((item: { thumbnail: string }) => resolveImageUrl(item.thumbnail))
       .filter(Boolean);
 
-    // 결과가 있는 경우에만 캐시 (30일)
+    // 결과가 있는 경우에만 캐시 (30일) - Upstash가 자동 직렬화하므로 배열 그대로 저장
     if (urls.length > 0) {
-      await redis.set(cacheKey, JSON.stringify(urls), { ex: 60 * 60 * 24 * 30 });
+      await redis.set(cacheKey, urls, { ex: 60 * 60 * 24 * 30 });
     }
 
     return NextResponse.json({ urls });
