@@ -9,7 +9,7 @@ interface TrayDisplayProps {
 
 interface DishWithImage {
   name: string;
-  imageUrl: string | null;
+  imageUrls: string[];
   loading: boolean;
 }
 
@@ -41,7 +41,7 @@ export default function TrayDisplay({ dishes, mealType }: TrayDisplayProps) {
 
     const initial = dishes.map((name) => ({
       name,
-      imageUrl: null,
+      imageUrls: [],
       loading: true,
     }));
     setDishImages(initial);
@@ -52,14 +52,14 @@ export default function TrayDisplay({ dishes, mealType }: TrayDisplayProps) {
         .then((data) => {
           setDishImages((prev) => {
             const next = [...prev];
-            next[index] = { name: dish, imageUrl: data.url, loading: false };
+            next[index] = { name: dish, imageUrls: data.urls ?? [], loading: false };
             return next;
           });
         })
         .catch(() => {
           setDishImages((prev) => {
             const next = [...prev];
-            next[index] = { name: dish, imageUrl: null, loading: false };
+            next[index] = { name: dish, imageUrls: [], loading: false };
             return next;
           });
         });
@@ -93,7 +93,7 @@ export default function TrayDisplay({ dishes, mealType }: TrayDisplayProps) {
         {/* Dishes grid */}
         <div className="relative grid grid-cols-3 gap-3">
           {dishImages.map((dish, i) => (
-            <DishCell key={i} dish={dish} colors={colors} index={i} />
+            <DishCell key={`${dish.name}-${i}`} dish={dish} colors={colors} index={i} />
           ))}
           {/* Empty slots to fill the grid nicely */}
           {dishImages.length % 3 !== 0 &&
@@ -113,7 +113,9 @@ interface DishCellProps {
 }
 
 function DishCell({ dish, colors }: DishCellProps) {
-  const [imgError, setImgError] = useState(false);
+  const [urlIndex, setUrlIndex] = useState(0);
+
+  const currentUrl = dish.imageUrls[urlIndex] ?? null;
 
   return (
     <div
@@ -130,14 +132,14 @@ function DishCell({ dish, colors }: DishCellProps) {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
           </div>
-        ) : dish.imageUrl && !imgError ? (
+        ) : currentUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
-            src={dish.imageUrl}
+            src={currentUrl}
             alt={dish.name}
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
-            onError={() => setImgError(true)}
+            onError={() => setUrlIndex((i) => i + 1)}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
