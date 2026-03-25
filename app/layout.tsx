@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "오늘의 급식 | 주간 메뉴표 분석기",
-  description: "주간 메뉴표 사진을 업로드하면 오늘의 급식 메뉴를 바로 확인할 수 있어요",
+  title: "KBS대구 주간식당메뉴",
+  description: "KBS대구 주간식당메뉴",
 };
 
 export default function RootLayout({
