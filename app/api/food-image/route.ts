@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   // 캐시 확인
   const cacheKey = `food-image:${query}`;
   const cached = await redis.get<string | null>(cacheKey);
-  if (cached !== undefined && cached !== null) {
+  if (cached) {
     return NextResponse.json({ url: cached });
   }
 
