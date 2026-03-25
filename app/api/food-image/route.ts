@@ -42,8 +42,10 @@ export async function GET(request: NextRequest) {
     const data = await res.json();
     const url = data.items?.[0]?.thumbnail || null;
 
-    // 결과를 Redis에 캐시 (30일)
-    await redis.set(cacheKey, url ?? "", { ex: 60 * 60 * 24 * 30 });
+    // 이미지를 찾은 경우에만 캐시 (30일)
+    if (url) {
+      await redis.set(cacheKey, url, { ex: 60 * 60 * 24 * 30 });
+    }
 
     return NextResponse.json({ url });
   } catch {
