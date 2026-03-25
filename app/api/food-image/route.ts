@@ -17,6 +17,17 @@ function resolveImageUrl(thumbnail: string): string {
   return thumbnail;
 }
 
+async function fetchNaverImages(query: string, clientId: string, clientSecret: string): Promise<string[]> {
+  const res = await fetch(
+    `https://openapi.naver.com/v1/search/image?query=${encodeURIComponent(query)}&display=3&sort=sim&filter=medium`,
+    { headers: { "X-Naver-Client-Id": clientId, "X-Naver-Client-Secret": clientSecret } }
+  );
+  const data = await res.json();
+  return (data.items ?? [])
+    .map((item: { thumbnail: string }) => resolveImageUrl(item.thumbnail))
+    .filter(Boolean);
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q");
@@ -41,22 +52,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const res = await fetch(
-      `https://openapi.naver.com/v1/search/image?query=${encodeURIComponent(query)}&display=3&sort=sim&filter=medium`,
-      {
-        headers: {
-          "X-Naver-Client-Id": clientId,
-          "X-Naver-Client-Secret": clientSecret,
-        },
-      }
-    );
+    let urls = await fetchNaverImages(query, clientId, clientSecret);
 
-    const data = await res.json();
-    const urls: string[] = (data.items ?? [])
-      .map((item: { thumbnail: string }) => resolveImageUrl(item.thumbnail))
-      .filter(Boolean);
+    // 결과 없으면 앞 단어 제거 후 재검색 (예: "열갈이겉절이" → "겉절이")
+    if (urls.length === 0 && query.length > 3) {
+      const fallback = query.slice(Math.ceil(query.length / 2));
+      urls = await fetchNaverImages(fallback, clientId, clientSecret);
+    }
 
-    // 결과가 있는 경우에만 캐시 (30일) - Upstash가 자동 직렬화하므로 배열 그대로 저장
+    // 결과가 있는 경우에만 캐시 (30일)
     if (urls.length > 0) {
       await redis.set(cacheKey, urls, { ex: 60 * 60 * 24 * 30 });
     }
