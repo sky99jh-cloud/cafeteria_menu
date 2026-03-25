@@ -36,7 +36,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <span className="text-3xl">🍱</span>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-800">오늘의 급식</h1>
+            <h1 className="text-xl font-bold text-gray-800">KBS 대구 주간식당메뉴</h1>
             <p className="text-xs text-gray-400">주간 메뉴표 분석기</p>
           </div>
           <a
