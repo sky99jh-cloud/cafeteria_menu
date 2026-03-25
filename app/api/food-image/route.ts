@@ -6,6 +6,17 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
+// search.pstatic.net은 만료되는 프록시 URL이므로 실제 원본 URL을 추출
+function resolveImageUrl(thumbnail: string): string {
+  try {
+    if (thumbnail.includes("search.pstatic.net")) {
+      const src = new URL(thumbnail).searchParams.get("src");
+      if (src) return src;
+    }
+  } catch {}
+  return thumbnail;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q");
@@ -44,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json();
     const urls: string[] = (data.items ?? [])
-      .map((item: { thumbnail: string }) => item.thumbnail)
+      .map((item: { thumbnail: string }) => resolveImageUrl(item.thumbnail))
       .filter(Boolean);
 
     // 결과가 있는 경우에만 캐시 (30일)
