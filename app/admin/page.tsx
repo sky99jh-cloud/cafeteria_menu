@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MenuUpload from "@/components/MenuUpload";
 import { WeeklyMenu } from "@/lib/types";
 
@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [savedMenu, setSavedMenu] = useState<WeeklyMenu | null>(null);
+  const [stats, setStats] = useState<{ today: number; total: number } | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +29,18 @@ export default function AdminPage() {
     }
   };
 
+  useEffect(() => {
+    if (!loggedIn) return;
+    fetch("/api/admin/stats")
+      .then((r) => r.json())
+      .then((data) => setStats(data));
+  }, [loggedIn]);
+
   const handleLogout = async () => {
     await fetch("/api/admin/logout", { method: "POST" });
     setLoggedIn(false);
     setSavedMenu(null);
+    setStats(null);
   };
 
   const handleAnalyze = async (file: File) => {
@@ -103,6 +112,22 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* 방문자 통계 */}
+        <section className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
+            <p className="text-xs text-gray-400 mb-1">오늘 방문자</p>
+            <p className="text-3xl font-bold text-blue-500">
+              {stats ? stats.today.toLocaleString() : "—"}
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
+            <p className="text-xs text-gray-400 mb-1">누적 방문자</p>
+            <p className="text-3xl font-bold text-gray-700">
+              {stats ? stats.total.toLocaleString() : "—"}
+            </p>
+          </div>
+        </section>
+
         <section className="bg-white rounded-2xl shadow-sm p-4">
           <p className="text-sm text-gray-500 mb-4">
             새 주간 메뉴표 사진을 업로드하면 모든 사용자에게 적용됩니다.

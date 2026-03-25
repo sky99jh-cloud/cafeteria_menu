@@ -26,6 +26,8 @@ export default function Home() {
         setSelectedDayIndex(idx >= 0 ? idx : 0);
       })
       .catch(() => setFetchError(true));
+
+    fetch("/api/visit", { method: "POST" });
   }, [findTodayIndex]);
 
   const selectedDay = menu?.days[selectedDayIndex];
