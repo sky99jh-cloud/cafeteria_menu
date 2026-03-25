@@ -136,6 +136,7 @@ function DishCell({ dish, colors }: DishCellProps) {
             src={dish.imageUrl}
             alt={dish.name}
             className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
             onError={() => setImgError(true)}
           />
         ) : (
