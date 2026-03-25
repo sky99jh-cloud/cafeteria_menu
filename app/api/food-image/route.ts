@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -6,6 +12,13 @@ export async function GET(request: NextRequest) {
 
   if (!query) {
     return NextResponse.json({ error: "No query provided" }, { status: 400 });
+  }
+
+  // 캐시 확인
+  const cacheKey = `food-image:${query}`;
+  const cached = await redis.get<string | null>(cacheKey);
+  if (cached !== undefined && cached !== null) {
+    return NextResponse.json({ url: cached });
   }
 
   const clientId = process.env.NAVER_CLIENT_ID;
@@ -28,6 +41,10 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json();
     const url = data.items?.[0]?.thumbnail || null;
+
+    // 결과를 Redis에 캐시 (30일)
+    await redis.set(cacheKey, url ?? "", { ex: 60 * 60 * 24 * 30 });
+
     return NextResponse.json({ url });
   } catch {
     return NextResponse.json({ url: null });
