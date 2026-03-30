@@ -1,8 +1,183 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import MenuUpload from "@/components/MenuUpload";
-import { WeeklyMenu } from "@/lib/types";
+import { WeeklyMenu, DayMenu } from "@/lib/types";
+
+function MenuEditor({
+  menu,
+  onSaved,
+}: {
+  menu: WeeklyMenu;
+  onSaved: (menu: WeeklyMenu) => void;
+}) {
+  const [editMenu, setEditMenu] = useState<WeeklyMenu>(menu);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedOk, setSavedOk] = useState(false);
+
+  // 항목 텍스트 수정
+  const updateItem = (
+    dayIdx: number,
+    meal: "breakfast" | "lunch",
+    itemIdx: number,
+    value: string
+  ) => {
+    setEditMenu((prev: WeeklyMenu) => {
+      const days = prev.days.map((d: DayMenu, di: number) => {
+        if (di !== dayIdx) return d;
+        const items = [...d[meal]];
+        items[itemIdx] = value;
+        return { ...d, [meal]: items };
+      });
+      return { ...prev, days };
+    });
+    setSavedOk(false);
+  };
+
+  // 항목 삭제
+  const removeItem = (dayIdx: number, meal: "breakfast" | "lunch", itemIdx: number) => {
+    setEditMenu((prev: WeeklyMenu) => {
+      const days = prev.days.map((d: DayMenu, di: number) => {
+        if (di !== dayIdx) return d;
+        const items = d[meal].filter((_: string, i: number) => i !== itemIdx);
+        return { ...d, [meal]: items };
+      });
+      return { ...prev, days };
+    });
+    setSavedOk(false);
+  };
+
+  // 항목 추가
+  const addItem = (dayIdx: number, meal: "breakfast" | "lunch") => {
+    setEditMenu((prev: WeeklyMenu) => {
+      const days = prev.days.map((d: DayMenu, di: number) => {
+        if (di !== dayIdx) return d;
+        return { ...d, [meal]: [...d[meal], ""] };
+      });
+      return { ...prev, days };
+    });
+    setSavedOk(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    setSavedOk(false);
+    try {
+      const res = await fetch("/api/menu", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editMenu),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "저장 실패");
+      }
+      const saved: WeeklyMenu = await res.json();
+      setSavedOk(true);
+      onSaved(saved);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "오류 발생");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const mealLabel = (meal: "breakfast" | "lunch") =>
+    meal === "breakfast" ? "아침" : "점심";
+
+  return (
+    <section className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-700">메뉴 편집</p>
+          <p className="text-xs text-gray-400">{editMenu.week}</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          {saving ? "저장 중..." : "저장하기"}
+        </button>
+      </div>
+
+      {saveError && <p className="text-red-500 text-xs">{saveError}</p>}
+      {savedOk && <p className="text-green-600 text-xs font-medium">✅ 저장되었습니다</p>}
+
+      {editMenu.days.map((day, dayIdx) => (
+        <DayEditor
+          key={day.date}
+          day={day}
+          dayIdx={dayIdx}
+          mealLabel={mealLabel}
+          onUpdateItem={updateItem}
+          onRemoveItem={removeItem}
+          onAddItem={addItem}
+        />
+      ))}
+    </section>
+  );
+}
+
+function DayEditor({
+  day,
+  dayIdx,
+  mealLabel,
+  onUpdateItem,
+  onRemoveItem,
+  onAddItem,
+}: {
+  day: DayMenu;
+  dayIdx: number;
+  mealLabel: (meal: "breakfast" | "lunch") => string;
+  onUpdateItem: (di: number, meal: "breakfast" | "lunch", ii: number, v: string) => void;
+  onRemoveItem: (di: number, meal: "breakfast" | "lunch", ii: number) => void;
+  onAddItem: (di: number, meal: "breakfast" | "lunch") => void;
+}) {
+  return (
+    <div className="border border-gray-100 rounded-xl p-3 space-y-3">
+      <p className="text-sm font-semibold text-gray-600">
+        {day.dayLabel}요일{" "}
+        <span className="text-xs font-normal text-gray-400">{day.date}</span>
+      </p>
+      {(["breakfast", "lunch"] as const).map((meal) => (
+        <div key={meal}>
+          <p className="text-xs text-gray-400 mb-1">{mealLabel(meal)}</p>
+          {day[meal].length === 0 && (
+            <p className="text-xs text-gray-300 italic mb-1">메뉴 없음</p>
+          )}
+          <div className="space-y-1">
+            {day[meal].map((item, itemIdx) => (
+              <div key={itemIdx} className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={item}
+                  onChange={(e) => onUpdateItem(dayIdx, meal, itemIdx, e.target.value)}
+                  className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
+                />
+                <button
+                  onClick={() => onRemoveItem(dayIdx, meal, itemIdx)}
+                  className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none px-1"
+                  aria-label="삭제"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => onAddItem(dayIdx, meal)}
+            className="mt-1 text-xs text-blue-400 hover:text-blue-600 transition-colors"
+          >
+            + 항목 추가
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -139,17 +314,10 @@ export default function AdminPage() {
         </section>
 
         {savedMenu && (
-          <section className="bg-green-50 border border-green-200 rounded-2xl p-4">
-            <p className="text-green-700 font-semibold text-sm mb-2">✅ 메뉴가 저장되었습니다</p>
-            <p className="text-green-600 text-xs">{savedMenu.week}</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {savedMenu.days.map((d) => (
-                <span key={d.date} className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                  {d.dayLabel}요일 아침 {d.breakfast.length}개 / 점심 {d.lunch.length}개
-                </span>
-              ))}
-            </div>
-          </section>
+          <MenuEditor
+            menu={savedMenu}
+            onSaved={(updated) => setSavedMenu(updated)}
+          />
         )}
 
         <div className="text-center">
