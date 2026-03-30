@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     // 결과가 있는 경우에만 캐시 (30일)
     if (urls.length > 0) {
-      await redis.set(cacheKey, urls, { ex: 60 * 60 * 24 * 30 });
+      await redis.set(cacheKey, urls, { ex: 60 * 60 * 24 * 180 });
     }
 
     return NextResponse.json({ urls });
