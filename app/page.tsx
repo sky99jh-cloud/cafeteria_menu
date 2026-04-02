@@ -12,7 +12,8 @@ export default function Home() {
   const [todayIndex, setTodayIndex] = useState(-1);
 
   const findTodayIndex = useCallback((days: DayMenu[]) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     return days.findIndex((d) => d.date === today);
   }, []);
 
