@@ -21,6 +21,12 @@ export async function POST(request: NextRequest) {
     const base64 = Buffer.from(bytes).toString("base64");
     const mediaType = file.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
+    const currentDay = String(now.getDate()).padStart(2, "0");
+    const todayStr = `${currentYear}-${currentMonth}-${currentDay}`;
+
     const response = await client.messages.create({
       model: "claude-opus-4-6",
       max_tokens: 2048,
@@ -33,8 +39,11 @@ export async function POST(request: NextRequest) {
               type: "text",
               text: `이 주간 급식 메뉴표 이미지를 분석합니다. 아래 순서대로 진행하세요.
 
+**현재 업로드 날짜: ${todayStr}**
+이미지에 연도 정보가 없거나 불분명하면 반드시 이 업로드 날짜의 연도(${currentYear})를 사용하세요.
+
 **1단계: 날짜 컬럼 헤더 확인**
-표 상단에서 "N월 N일\\nMON" 형태의 날짜+요일 헤더를 가진 컬럼들을 왼쪽부터 순서대로 나열하세요.
+표 상단에서 "N월 N일\nMON" 형태의 날짜+요일 헤더를 가진 컬럼들을 왼쪽부터 순서대로 나열하세요.
 주의: 표 맨 왼쪽의 "건강생각아침", "정성가득점심" 세로 레이블 영역은 날짜 컬럼이 아닙니다. 제외하세요.
 
 **2단계: 각 날짜 컬럼별 메뉴 추출**
@@ -44,14 +53,14 @@ export async function POST(request: NextRequest) {
 - 셀이 비어 있으면 빈 배열 []
 
 **3단계: JSON 출력**
-날짜는 YYYY-MM-DD 형식으로 변환하세요. (예: "3월 30일" → "2026-03-30")
+날짜는 YYYY-MM-DD 형식으로 변환하세요. 연도는 반드시 ${currentYear}을 사용하세요.
 아래 형식의 JSON을 출력하세요:
 
 {
-  "week": "2026-03-30 ~ 2026-04-03",
+  "week": "${currentYear}-MM-DD ~ ${currentYear}-MM-DD",
   "days": [
     {
-      "date": "2026-03-30",
+      "date": "${currentYear}-MM-DD",
       "dayName": "MON",
       "dayLabel": "월",
       "breakfast": [],

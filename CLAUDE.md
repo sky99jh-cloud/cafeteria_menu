@@ -92,6 +92,7 @@ interface WeeklyMenu {
 
 | 날짜 | 커밋 해시 | 내용 |
 |---|---|---|
+| 2026-04-06 | (미커밋) | Claude OCR 프롬프트에 업로드 시점 연도 주입 — 연도 오인식 버그 수정 |
 | 2026-03-30 | `bfb1bc4` | 음식 이미지 캐시 TTL을 180일로 변경 |
 | 2026-03-30 | `bbaa72b` | 관리자 페이지에서 기존 메뉴 수정 기능 추가 |
 | 2026-03-30 | `e39c01d` | 아침 메뉴 빈칸 버그 수정 (3차) |
@@ -121,3 +122,4 @@ interface WeeklyMenu {
 - **Upstash Redis 자동 파싱**: `redis.get()`이 JSON을 자동으로 파싱함. 캐시 값이 배열인지 문자열인지 타입 체크 필수.
 - **Naver 이미지 URL**: `search.pstatic.net` 프록시 URL은 만료되므로 `src` 파라미터에서 원본 URL을 추출해서 저장.
 - **관리자 인증**: 쿠키 기반 세션. `isAdminAuthenticated()` (`lib/admin-auth.ts`) 로 API route에서 검증.
+- **Claude OCR 연도 처리**: `analyze-menu/route.ts`에서 서버 업로드 시점의 `currentYear`를 프롬프트에 주입. 이미지에 연도가 없거나 잘못 인식되더라도 업로드 연도가 강제 적용됨.
