@@ -209,6 +209,9 @@ export default function AdminPage() {
     fetch("/api/admin/stats")
       .then((r) => r.json())
       .then((data) => setStats(data));
+    fetch("/api/menu")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setSavedMenu(data); });
   }, [loggedIn]);
 
   const handleLogout = async () => {
